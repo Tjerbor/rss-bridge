@@ -2,7 +2,7 @@
 
 class GoodreadsBridge extends BridgeAbstract
 {
-    const MAINTAINER = 'captn3m0';
+    const MAINTAINER = 'Tjerbor';
     const NAME = 'Goodreads Bridge';
     const URI = 'https://www.goodreads.com/';
     const CACHE_TIMEOUT = 0; // 30min
@@ -28,6 +28,13 @@ class GoodreadsBridge extends BridgeAbstract
                 'title' => 'If left unchecked, this will return unpublished books as well',
                 'defaultValue' => 'checked',
             ],
+			'maximum_pages' => [
+				'name' => 'Maximum page crawling',
+				'type' => 'number',
+				'required' => false,
+				'title' => 'If left empty defaults to 3.',
+				'defaultValue' => 3,
+			],
         ],
     ];
 
@@ -42,42 +49,58 @@ class GoodreadsBridge extends BridgeAbstract
         $authorListUrl = "https://www.goodreads.com/author/list/$authorId?sort=original_publication_year";
 
         $html = getSimpleHTMLDOMCached($authorListUrl, self::CACHE_TIMEOUT);
+		
+		$pages_a = $html->find('div[style="float: right"]',0)->find('a[href]');
+		
+		$pages = 1;
+		if (sizeof($pages_a) > 0){
+			$index = (int) sizeof($pages_a) - 2;
+			$pages_text = $pages_a[$index]->plaintext;
+			$pages = (int)$pages_text;
+		}
 
-        foreach ($html->find('tr[itemtype="http://schema.org/Book"]') as $row) {
-            $dateSpan = $row->find('.uitext', 0)->plaintext;
-            $date = null;
+		for($i = 1; $i <= $pages and $i <= $this->getInput('maximum_pages'); $i++){
+			$authorListUrl = "https://www.goodreads.com/author/list/$authorId?page=$i&sort=original_publication_year&utf8=✓";
+			if($i > 1){
+				$html = getSimpleHTMLDOMCached($authorListUrl, self::CACHE_TIMEOUT);
+			}
+			foreach ($html->find('tr[itemtype="http://schema.org/Book"]') as $row) {
+				$dateSpan = $row->find('.uitext', 0)->plaintext;
+				$date = null;
 
-            // If book is not yet published, ignore for now
-            if (preg_match('/published\s+(\d{4})/', $dateSpan, $matches) === 1) {
-                // Goodreads doesn't give us exact publication date here, only a year
-                // We are skipping future dates anyway, so this is def published
-                // but we can't pick a dynamic date either to keep clients from getting
-                // confused. So we pick a guaranteed date of 1st-Jan instead.
-                $date = $matches[1] . '-01-01';
-            } elseif ($this->getInput('published_only') !== 'checked') {
-                // We can return unpublished books as well
-                $date = date('Y-01-01');
-            } else {
-                continue;
-            }
+				// If book is not yet published, ignore for now
+				if (preg_match('/published\s+(\d{4})/', $dateSpan, $matches) === 1) {
+					// Goodreads doesn't give us exact publication date here, only a year
+					// We are skipping future dates anyway, so this is def published
+					// but we can't pick a dynamic date either to keep clients from getting
+					// confused. So we pick a guaranteed date of 1st-Jan instead.
+					$date = $matches[1] . '-01-01';
+				} elseif ($this->getInput('published_only') !== 'checked') {
+					// We can return unpublished books as well
+					$date = date('Y-01-01');
+				} else {
+					continue;
+				}
 
-            $row = defaultLinkTo($row, $this->getURI());
+				$row = defaultLinkTo($row, $this->getURI());
 
-            $item['title'] = $row->find('.bookTitle', 0)->plaintext;
-            $item['uri'] = $row->find('.bookTitle', 0)->getAttribute('href');
-            $item['author'] = $row->find('.authorName', 0)->plaintext;
-            $item['content'] = '<a href="'
-            . $row->find('.bookTitle', 0)->getAttribute('href')
-            . '"><img src="'
-            . $row->find('.bookCover', 0)->getAttribute('src')
-            . '"></a>';
-            $item['timestamp'] = $date;
-            $item['enclosures'] = [
-            $row->find('.bookCover', 0)->getAttribute('src')
-            ];
+				$item['title'] = $row->find('.bookTitle', 0)->plaintext;
+				$item['uri'] = $row->find('.bookTitle', 0)->getAttribute('href');
+				$item['author'] = $row->find('.authorName', 0)->plaintext;
+				$item['content'] = '<a href="'
+				. $row->find('.bookTitle', 0)->getAttribute('href')
+				. '"><img src="'
+				. $row->find('.bookCover', 0)->getAttribute('src')
+				. '"></a>';
+				$item['timestamp'] = $date;
+				$item['enclosures'] = [
+				$row->find('.bookCover', 0)->getAttribute('src')
+				];
 
-            $this->items[] = $item; // Add item to the list
-        }
+				$this->items[] = $item; // Add item to the list
+			}
+			
+		}
     }
 
     public function collectData()
