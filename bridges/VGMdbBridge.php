@@ -12,13 +12,13 @@ class VGMdbBridge extends BridgeAbstract
 
     // Using a specific context because I plan to expand this soon
     const PARAMETERS = [
-        $ARTIST_PAGE => [
+        'Artist Page' => [
             'artist_url' => [
                 'name' => 'Link to artist page',
                 'type' => 'text',
                 'required' => true,
                 'title' => 'Example: https://vgmdb.net/artist/33535',
-                'pattern' => '^(https:\/\/)?(www.)?vgmdb\.net\/artist\/\d+\$',
+                //'pattern' => '^(https:\/\/)?(www.)?vgmdb\.net\/artist\/\d+\$',
                 'exampleValue' => 'https://vgmdb.net/artist/33535'
             ],
         ],
@@ -26,7 +26,7 @@ class VGMdbBridge extends BridgeAbstract
 
     private function collectReleases($url)
     {
-        $html = getSimpleHTMLDOMCached($artist_url, self::CACHE_TIMEOUT);
+        $html = getSimpleHTMLDOMCached($url, self::CACHE_TIMEOUT);
 		$artist_name = $html->find('title',0)->plaintext;
 		$artist_name = str_replace($artist_name,' - VGMdb','');
 		
@@ -34,12 +34,15 @@ class VGMdbBridge extends BridgeAbstract
 		
 		foreach($year_rows as $year_row){
 			$year = $year_row->find('tr[rel="year"]',0)->find('h3',0)->plaintext;
+			echo $year . '\n';
 			$releases = $year_row->find('tr[rel^="|r"]');
 			foreach($releases as $release){
 				$month_date = $release->find('.label',0)->plaintext;
-				$date = $year + '.' + $month_date;
-				if(strlen($date) == 7){ //YYYY.MM
-					$date += '.01';
+				$date = $year . '.' . $month_date;
+				echo $date . '\n';
+				//YYYY-MM
+				if(strlen($date) == 7){
+					$date .= '.01';
 				}
 				$release_a = $release->find('a[title]',0);
 				
@@ -49,17 +52,18 @@ class VGMdbBridge extends BridgeAbstract
 				$content_text = $release->find('td[valign="top"]',0)->plaintext;
 				
 				$item['title'] = $title;
-				$item['timestamp'] = $date;	
+				$item['timestamp'] = date($date);
 				$item['uri'] = $release_uri;
 				$item['author'] = $artist_name;
 				$item['content'] = '<p>'
 				. $content_text
-				. </p>;
+				. '</p>';
 				$this->items[] = $item;
 			}
 			
 			
 		}
+	}
 
     public function collectData()
     {
