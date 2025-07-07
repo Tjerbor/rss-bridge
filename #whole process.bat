@@ -1,0 +1,1 @@
+docker stop rss-bridge & docker rm rss-bridge & "#1 build.bat" && "#2 docker create.bat" && "#3 docker run.bat"

@@ -1,0 +1,1 @@
+docker create --name=rss-bridge --publish 3000:80 rss-bridge
