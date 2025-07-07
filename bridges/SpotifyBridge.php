@@ -258,10 +258,13 @@ class SpotifyBridge extends BridgeAbstract
         $item = [];
         $item['title'] = $album['name'];
         $item['uri'] = $album['external_urls']['spotify'];
+		$album_id = $this->getAlbumID($item['uri']);
+		
         $item['timestamp'] = $this->getDate($album);
         $item['author'] = $album['artists'][0]['name'];
         $item['categories'] = [$album['album_type']];
-        $item['content'] = '<img style="width: 256px" src="' . $album['images'][0]['url'] . '">';
+        $item['content'] = '<iframe style="border-radius:12px" src="https://open.spotify.com/embed/album/' . $album_id . '" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>';
+		
         if ($album['total_tracks'] > 1) {
             $item['content'] .= '<p>Total tracks: ' . $album['total_tracks'] . '</p>';
         }
@@ -273,10 +276,12 @@ class SpotifyBridge extends BridgeAbstract
         $item = [];
         $item['title'] = $track['track']['name'];
         $item['uri'] = $track['track']['external_urls']['spotify'];
+		$album_id = $this->getAlbumID($item['uri']);
+		
         $item['timestamp'] = $this->getDate($track);
         $item['author'] = $track['track']['artists'][0]['name'];
         $item['categories'] = ['track'];
-        $item['content'] = '<img style="width: 256px" src="' . $track['track']['album']['images'][0]['url'] . '">';
+        $item['content'] = '<iframe style="border-radius:12px" src="https://open.spotify.com/embed/album/' . $album_id . '" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>';
         return $item;
     }
 
@@ -363,6 +368,12 @@ class SpotifyBridge extends BridgeAbstract
             $this->name = parent::getName();
         }
     }
+	
+	private function getAlbumID($uri)
+	{
+		preg_match('/^.*\/([[:alnum:]]*)$/', $uri, $matches);
+		return $matches[1];
+	}
 
     public function getIcon()
     {
