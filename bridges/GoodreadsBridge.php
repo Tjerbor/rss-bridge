@@ -256,6 +256,17 @@ class GoodreadsBridge extends BridgeAbstract
 			default: return self::NAME;
 		}
 	}
+	
+	public function getURI()
+	{
+		switch ($this->queriedContext) {
+            case self::CONTEXT_AUTHOR_BOOKS:
+				return $this->getInput('author_url');
+				break;
+			default:
+				return self::URI;
+		}
+	}
 
     public function collectData()
     {
