@@ -89,7 +89,35 @@ class VGMdbBridge extends BridgeAbstract
 					$item['content'] .= $html->find('#innermain',0);
 					$item['enclosures'] = [$image_src];
 					
-					$item['author'] = oijdfgodjgdflkg
+					$credits_rows = $html->find('#collapse_credits',0)->find('.maincred');
+					
+					$artists = '';
+					
+					foreach($credits_rows as $credit_row)
+					{
+						try{
+							$alt_namesss = $credit_row->children(1);
+							$alt_names = $alt_namesss->find('.artistname[style$="none"]');				
+							
+							if(!is_null($alt_names)){
+								foreach($alt_names as $alt_name)
+								{
+									$alt_name->remove();
+								}
+							}
+						} catch (Exception $e){}
+						catch (\Error $er) {}
+						$line_of_artist = trim(str_replace('/','',$credit_row->find('td[width="100%"]',0)->plaintext));
+						
+						$artists .= ', ' . $line_of_artist;
+					}
+					
+					$artists = trim($artists);
+					
+					$artists_array = array_unique(explode(', ', $artists));
+					$empty_string_location = array_search('',$artists_array);
+					unset($artists_array[$empty_string_location]);
+					$item['author'] = implode(', ', $artists_array);
 				} else {
 					$content_text = $release->find('td[valign="top"]',1);
 					$item['content'] = $content_text;
@@ -102,6 +130,11 @@ class VGMdbBridge extends BridgeAbstract
 			
 			
 		}
+	}
+	
+	private function from_array_to_set($array)
+	{
+		
 	}
 	
 	private function populate_artist($url)
